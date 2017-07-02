@@ -27,7 +27,19 @@ router.get('/:type/new', function(req, res) {
         res.render('metadata/new.html', locals);
       })
       .catch(function(e) {
-        logger.error(e);
+        logger.error(e);function _getTemplates(typeXmlName) {
+  return new Promise(function(resolve, reject) {
+    var templateService = new TemplateService();
+    templateService.getTemplatesForType(typeXmlName)
+      .then(function(templates) {
+        resolve(templates);
+      })
+      .catch(function(e) {
+        reject(new Error('Could not retrieve templates: '+e.message));
+      })
+      .done();
+  });
+}
         res.render('metadata/new.html', {
           title: 'New Metadata'
         });
@@ -50,12 +62,14 @@ router.get('/:type/templates/:fileName', function(req, res) {
 
 router.post('/', function(req, res) {
   var commandExecutor = req.app.get('commandExecutor');
-  var request = commandExecutor.execute({
+  var obj = {
     project: req.project,
     name: 'new-metadata',
     body: req.body,
     editor: req.editor
-  });
+  };
+  console.log(obj);
+  var request = commandExecutor.execute(obj);
   var requestId = requestStore.add(request);
   return res.send({
     status: 'pending',

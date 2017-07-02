@@ -72,6 +72,7 @@ module.exports.start = function(opts) {
     app.set('helper', viewHelper);
 
     app.use('/app/static', express.static(path.join(util.getAppRoot(), 'app', 'public')));
+    app.use('/app/controller', express.static(path.join(util.getAppRoot(), 'app', 'controller')));
     app.use(require('./routes'));
 
     app.set('commandExecutor', require('./lib/commands')(opts.openWindowFn));

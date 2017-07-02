@@ -1,0 +1,318 @@
+ {% extends "views/layouts/base.html" %} {% block yield %}
+
+<div ng-app="testClassGenerator" ng-controller="testClassGeneratorController as ctr">
+    <div class="panel panel-default">
+        <div class="panel-heading">Settings</div>
+        <div class="panel-body">
+            <div class="input-group">
+                <select id="template" class="slds-select" ng-model="ctr.template">
+                <option value="">Select a metadata template</option>
+                    {% for t in templates %}
+                    <option value="{{ t['name'] }}" file_name="{{t['file_name']}}">{{ t['name'] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <br />
+            <div class="input-group">
+                <span class="input-group-addon" id="basic-addon3">File prefix</span>
+                <input type="text" class="form-control" ng-model="ctr.prefix">
+            </div>
+            <br />
+            <div class="input-group">
+                <span class="input-group-addon" id="basic-addon3">Your initials</span>
+                <input type="text" class="form-control" ng-model="ctr.initials">
+            </div>
+            <br />
+            <div class="input-group">
+                <span class="input-group-addon" id="basic-addon3">Date</span>
+                <input type="text" class="form-control" ng-model="ctr.date">
+            </div>
+
+
+        </div>
+    </div>
+    <div class="panel panel-default">
+        <div class="panel-heading">Class management</div>
+        <div class="panel-body">
+            <select id="newClassSelector" ng-model="classToAdd">
+                {% for object in objects %}
+                <option value="{{ object.name }}" id="option-{{ object.name }}">{{ object.name }}</option>
+                {% endfor %}
+            </select>
+            <button class="btn btn-success btn-xs" ng-disabled="!classToAdd" ng-click="ctr.addClass(classToAdd);">Add class</button>
+            <br />
+            <div id="tree"></div>
+        </div>
+    </div>
+    <div class="panel panel-default" ng-show="ctr.newClass.type">
+        <div class="panel-heading">Change instance settings</div>
+        <div class="panel-body">
+            <div class="input-group">
+                <span class="input-group-addon" id="basic-addon3">Type</span>
+                <input type="text" class="form-control" ng-model="ctr.newClass.type" readonly>
+            </div>
+            <br />
+            <div class="input-group">
+                <span class="input-group-addon" id="basic-addon3">Name</span>
+                <input type="text" class="form-control" ng-model="ctr.newClass.title">
+            </div>
+            <br />
+            <table class="table">
+                <tbody>
+                    <tr>
+                        <th>Name</th>
+                        <th>Label</th>
+                        <th>Default Value</th>
+                        <th>Type</th>
+                        <th>Reference to</th>
+                    </tr>
+                    <tr ng-repeat="field in ctr.description.fields | filter:ctr.filterChangeableFields">
+                        <td>{[{field.name}]}</td>
+                        <td>{[{field.label}]}</td>
+                        <td>{[{field.defaultValue}]}</td>
+                        <td>{[{field.type}]}</td>
+                        <td>{[{field.referenceTo}]}</td>
+                    </tr>
+                </tbody>
+            </table>
+            <br />
+            <button class="btn btn-success" ng-show="ctr.newClass.createNew" ng-click="ctr.addInstance();">Create new instance</button>
+            <button class="btn btn-primary" ng-hide="ctr.newClass.createNew" ng-click="ctr.updateInstance();">Update instance</button>
+        </div>
+    </div>
+    <button class="btn btn-warning" ng-click="ctr.createFiles();">Create classes</button>
+</div>
+
+<!--
+<script type="text/javascript">
+    var response;
+    var templates = {{ JSON.stringify(templates) }};
+    var selectedTemplate = null;
+    var metadataType = '{{metadataType}}';
+
+    function newMetadata() {
+        paramPayload = {}
+        $("input.templateParam").each(function (index) {
+            var paramName = $(this).data("param");
+            var paramValue = $(this).val();
+            paramPayload[paramName] = paramValue;
+        });
+        var opts = {
+            ajax: {
+                type: 'POST',
+                url: "{{ mavensmate.ui.getBaseUrl() }}/app/metadata",
+                data: JSON.stringify({
+                    metadataTypeXmlName: '{{ metadataType }}',
+                    templateValues: paramPayload,
+                    template: selectedTemplate
+                })
+            },
+            message: {
+                label: 'Creating new metadata...'
+            }
+        };
+
+        mavensmate.request(opts)
+            .then(function (response) {
+                console.log(response);
+                showToast(response.result.message, 'success');
+            })
+            .catch(function (err) {
+                console.error('could not create metadata', err);
+            })
+            .finally(function () {
+                hideLoading();
+            });
+    }
+
+    $(function () {
+        // fetch templates from the server
+        $("#template").change(function () {
+            var value = $(this).val();
+            selectedTemplate = null;
+            var paramsHtml = '';
+            if (value === null || value === '') {
+                paramsHtml = '';
+                $("#template_body_wrapper").hide();
+            } else {
+                for (t in templates) {
+                    if (templates[t].name === value) {
+                        console.log('our template!');
+                        console.log(templates[t]);
+                        selectedTemplate = templates[t];
+                        break;
+                    }
+                }
+                for (p in selectedTemplate.params) {
+                    paramsHtml += '<div class="slds-form-element slds-m-top--small"><label class="slds-form-element__label" for="inputSample2">' + selectedTemplate.params[p].description + '</label><div class="slds-form-element__control"><input class="slds-input templateParam" data-param="' + selectedTemplate.params[p].name + '" type="text" placeholder="' + selectedTemplate.params[p].name + '"/></div></div>';
+                }
+            }
+
+            var opts = {
+                async: false,
+                ajax: {
+                    type: 'GET',
+                    dataType: 'text',
+                    url: "{{ mavensmate.ui.getBaseUrl() }}/app/metadata/{{metadataType}}/templates/" + encodeURI(selectedTemplate.file_name)
+                }
+            };
+
+            mavensmate.request(opts)
+                .then(function (response) {
+                    console.log('res is', response);
+                    if (metadataType === 'ApexClass' || metadataType === 'ApexTrigger') {
+                        $("#template_body").html('<pre class="template_body_pre prettyprint lang-java"></pre>');
+                    } else if (metadataType === 'ApexPage' || metadataType === 'ApexComponent') {
+                        $("#template_body").html('<pre class="template_body_pre prettyprint lang-html"></pre>');
+                    }
+                    $(".template_body_pre").text(response);
+                    prettyPrint();
+                    $("#template_body_wrapper").show();
+                })
+                .catch(function (err) {
+                    console.error('could not retrieve template', err);
+                })
+                .finally(function () {
+                    // todo: hide template loading
+                });
+
+            $("div#template_params").html(paramsHtml);
+        });
+    });
+    var tree = null;
+
+    var children = [ // Pass an array of nodes.
+        /*
+        {title: "Item 1"},
+        {title: "Folder 2", isFolder: true,
+            children: [
+                {title: "Sub-item 2.1"},
+                {title: "Sub-item 2.2"}
+            ]
+        },
+        {title: "Item 3"}
+        */
+    ];
+
+    function addClass() {
+        var className = $("#newClassSelector").val();
+        var classObj = {
+            title: className,
+            isFolder: true,
+            children: [
+                {
+                    title: "New Instance...",
+                    type: className,
+                    createNew: true,
+                }
+            ],
+            key: className
+        };
+        //children.push(classObj);
+        var node = $("#tree").dynatree("getRoot");
+        var childNode = node.addChild(classObj);
+
+        // Remove from Select List
+        $("#option-" + className).remove();
+    }
+
+    function addChild() {
+        var tree = $("#tree").dynatree("getTree");
+        var key = $("#classtype").val();
+        var parentNode = tree.getNodeByKey(key);
+        var title = $("#instanceName").val();
+        parentNode.addChild({
+            title: title,
+            type: key,
+            createNew: false,
+            key: key + '-' + title
+        });
+
+        tree.activateKey(key + '-' + title);
+    }
+
+
+    $(function () {
+        var linkElement = document.createElement("link");
+        linkElement.rel = "stylesheet";
+        linkElement.href = "{{ mavensmate.ui.getStaticResourcePath() }}/css/dynatree.css"; //Replace here
+
+        document.head.appendChild(linkElement);
+
+        // Attach the dynatree widget to an existing <div id="tree"> element
+        // and pass the tree options as an argument to the dynatree() function:
+        tree = $("#tree").dynatree({
+            onActivate: function (node) {
+                // Only child nodes are interesting...
+                if (node.parent.parent != null) {
+                    console.log(node);
+                    $("#classtype").val(node.data.type);
+                    $("#createNew").val(node.data.createNew);
+                    $("#instanceName").val(node.data.title);
+                }
+
+            }
+            //persist: false,
+            children: children,
+            debugLevel: 2
+        });
+    });
+
+</script>
+-->
+<!--
+<ul>
+    {% for object in objects %}
+    <li>{{ object.name }}</li>
+    {% endfor %}
+</ul>
+-->
+
+<br />
+<!--
+<div class="slds-form-element">
+    <label class="slds-form-element__label" for="inputSample2">Metadata Template</label>
+    <div class="slds-form-element__control">
+        <select id="template" class="slds-select">
+							<option value="">Select a metadata template</option>
+							{% for t in templates %}
+								<option value="{{ t['name'] }}">{{ t['name'] }}</option>
+							{% endfor %}
+						</select>
+    </div>
+</div>
+
+<div id="template_params">
+</div>
+<br />
+<h1>Classes:</h1>
+<select id="newClassSelector">
+    {% for object in objects %}
+    <option value="{{ object.name }}" id="option-{{ object.name }}">{{ object.name }}</option>
+    {% endfor %}
+</select>
+<button onclick="addClass();">Add class</button>
+<br />
+<div id="tree">
+</div>
+<h2>Edit Implementation</h2>
+<input id="createNew" type="hidden" name="createNew" value="false" />
+<div class="slds-form-element">
+    <label class="slds-form-element__label" for="inputSample2">Type:</label>
+    <div class="slds-form-element__control">
+        <input id="classtype" type="text" value="" readonly/>
+    </div>
+</div>
+<div class="slds-form-element">
+    <label class="slds-form-element__label" for="inputSample2">Name:</label>
+    <div class="slds-form-element__control">
+        <input type="text" id="instanceName"/>
+    </div>
+</div>
+<br />
+<br />
+<input type="button" id="btnSubmit" class="slds-button slds-button--brand" value="Create Metadata" onclick='newMetadata();'>
+<input type="button" class="slds-button slds-button--brand" value="Create Instance" onclick='addChild();'>
+<pre>
+</pre>
+-->

@@ -33,6 +33,7 @@ router.use('/app/metadata',require('./metadata'));
 router.use('/app/project',require('./project'));
 router.use('/app/settings',require('./settings'));
 router.use('/app/test',require('./test'));
+router.use('/app/testclassgenerator',require('./testclassgenerator'));
 
 // if we have an unhandled route, we throw a 404 if it's ajax, otherwise we return our 404.html
 router.get('*', function(req, res){
