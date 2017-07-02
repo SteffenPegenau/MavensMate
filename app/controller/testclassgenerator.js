@@ -20,7 +20,7 @@ angular.module('testClassGenerator', [])
         ctr.newClass.key = "";
 
         ctr.filterChangeableFields = function(field) {
-            return field.updateable && !field.calculated && field.createable;
+            return !field.calculated && field.createable;
         };
 
         ctr.tree = $("#tree").dynatree({
@@ -31,6 +31,7 @@ angular.module('testClassGenerator', [])
                     ctr.newClass.createNew = node.data.createNew;
                     ctr.newClass.title = node.data.title;
                     ctr.newClass.key = node.data.type + '-' + node.data.title;
+                    ctr.description = node.parent.data.description;
                     $scope.$digest();
                 }
             },
